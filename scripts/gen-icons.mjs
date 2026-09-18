@@ -26,10 +26,26 @@ const STAMP = path.join(OUT_DIR, ".source-hash");
 // Vai file dai dien de xac nhan `tauri icon` da chay xong thanh cong — chi
 // can vai file, khong can liet ke het (Android sinh rat nhieu mat do man
 // hinh: mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi x thuong/round/foreground).
-const REQUIRED_ICONS = [
-  "128x128.png",
-  path.join("android", "mipmap-xxxhdpi", "ic_launcher.png"),
-];
+// Icon desktop (128x128.png...) luon nam trong OUT_DIR bat ke gen/android/
+// co ton tai hay chua, nen check rieng, don gian.
+const REQUIRED_ICONS = ["128x128.png"];
+
+const GEN_ANDROID_DIR = path.join(ROOT, "src-tauri", "gen", "android");
+const ANDROID_ICON_REL = path.join("mipmap-xxxhdpi", "ic_launcher.png");
+
+// QUAN TRONG: `tauri icon` sinh icon Android o 2 cho KHAC NHAU tuy theo
+// gen/android/ da ton tai hay chua (xem comment dau file):
+//   - Chua ton tai (lan chay dau, tu setup-android.yml) -> ghi vao
+//     src-tauri/icons/android/mipmap-*/...
+//   - Da ton tai (release.yml, hoac cac lan chay sau) -> ghi THANG vao
+//     src-tauri/gen/android/app/src/main/res/mipmap-*/...
+// Phai kiem tra dung cho, neu khong se bao "thieu file" oan du icon da
+// sinh dung cho roi.
+function androidIconPath() {
+  return fs.existsSync(GEN_ANDROID_DIR)
+    ? path.join(GEN_ANDROID_DIR, "app", "src", "main", "res", ANDROID_ICON_REL)
+    : path.join(OUT_DIR, "android", ANDROID_ICON_REL);
+}
 
 function fail(message) {
   console.error(`[gen-icons] ${message}`);
@@ -50,7 +66,10 @@ function readStamp() {
 }
 
 function allIconsPresent() {
-  return REQUIRED_ICONS.every((name) => fs.existsSync(path.join(OUT_DIR, name)));
+  return (
+    REQUIRED_ICONS.every((name) => fs.existsSync(path.join(OUT_DIR, name))) &&
+    fs.existsSync(androidIconPath())
+  );
 }
 
 function runTauriIcon() {
@@ -95,6 +114,9 @@ function main() {
   const missing = REQUIRED_ICONS.filter(
     (name) => !fs.existsSync(path.join(OUT_DIR, name))
   );
+  if (!fs.existsSync(androidIconPath())) {
+    missing.push(androidIconPath());
+  }
 
   if (missing.length > 0) {
     fail(

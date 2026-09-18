@@ -1,0 +1,86 @@
+name: setup-android
+# Chi chay THU CONG (bam "Run workflow" trong tab Actions), dung 1 LAN DUY
+# NHAT cho ca vong doi repo. Viec cua no: sinh src-tauri/gen/android/
+# (project Kotlin/Gradle that ma `tauri android init` tao ra) roi tu commit
+# thang vao repo — vi day la source can duoc luu lai (noi cau hinh chu ky
+# release song), khong phai thu sinh-lai-moi-lan nhu icon hay web build.
+#
+# Sau khi chay xong 1 lan nay, moi lan tag vX.Y.Z ve sau, release.yml se
+# dung project da commit o day, khong goi lai workflow nay nua.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  setup-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pydinary-apk
+        uses: actions/checkout@v4
+
+      - name: Kiem tra da scaffold truoc do chua
+        id: check
+        run: |
+          if [ -d "src-tauri/gen/android" ]; then
+            echo "da_ton_tai=true" >> "$GITHUB_OUTPUT"
+            echo "src-tauri/gen/android/ da co san trong repo — bo qua, khong lam gi ca."
+          else
+            echo "da_ton_tai=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.check.outputs.da_ton_tai == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        if: steps.check.outputs.da_ton_tai == 'false'
+        run: |
+          rustup update stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Setup JDK 17
+        if: steps.check.outputs.da_ton_tai == 'false'
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Setup Android SDK
+        if: steps.check.outputs.da_ton_tai == 'false'
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Android NDK
+        if: steps.check.outputs.da_ton_tai == 'false'
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+          link-to-sdk: true
+
+      - name: Install frontend deps
+        if: steps.check.outputs.da_ton_tai == 'false'
+        run: npm ci
+
+      # Sinh icon TRUOC khi init de `tauri android init` doc thay va
+      # dua luon vao project Android moi scaffold.
+      - name: Gen icons
+        if: steps.check.outputs.da_ton_tai == 'false'
+        run: npm run gen-icons
+
+      - name: tauri android init
+        if: steps.check.outputs.da_ton_tai == 'false'
+        run: npx tauri android init
+
+      - name: Commit src-tauri/gen/android
+        if: steps.check.outputs.da_ton_tai == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f src-tauri/gen/android
+          git commit -m "chore: scaffold Android project (tauri android init)"
+          git push

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "default",
+  "description": "Quyen mac dinh, toi thieu — app khong co custom command/plugin nao, khong can quyen dieu khien cua so nhu ban Windows (Android khong co khai niem titlebar/minimize/maximize).",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

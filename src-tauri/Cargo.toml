@@ -1,0 +1,18 @@
+[package]
+name = "pydinary-apk"
+version = "0.1.0"
+description = "Pydinary Android app"
+edition = "2021"
+
+# Bat buoc phai co [lib] + ten rieng cho Tauri mobile: Android (qua JNI) goi
+# thang vao ham run() trong lib.rs, khac voi pydinary-app (chi build
+# Windows) chi can main.rs vi khong co muc tieu mobile nao ca.
+[lib]
+name = "pydinary_apk_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
